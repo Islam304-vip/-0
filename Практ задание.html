@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>IT Lab & Tasks Dashboard</title>
+<style>
+  :root {
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --bg-color: #f8fafc;
+    --card-bg: #ffffff;
+    --text-color: #1e293b;
+    --border-color: #cbd5e1;
+  }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 24px;
+    line-height: 1.5;
+  }
+  h1 {
+    color: var(--primary);
+    margin-bottom: 8px;
+  }
+  section {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+  }
+  h2 {
+    margin-top: 0;
+    font-size: 1.25rem;
+    color: #334155;
+    border-bottom: 2px solid #f1f5f9;
+    padding-bottom: 8px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  th, td {
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  th {
+    background-color: #f1f5f9;
+  }
+  input, select, button {
+    padding: 8px 12px;
+    margin: 4px 4px 4px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  button {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+  button:hover {
+    background-color: var(--primary-hover);
+  }
+  .device-card {
+    border: 1px solid var(--border-color);
+    background: #fff;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 8px;
+    display: inline-block;
+    width: 220px;
+    box-shadow: 0 2px 4px rgb(0 0 0 / 0.03);
+  }
+  #chatContainer {
+    border: 1px solid var(--border-color);
+    height: 180px;
+    overflow-y: auto;
+    padding: 10px;
+    background: #f8fafc;
+    border-radius: 6px;
+    margin-bottom: 10px;
+  }
+  pre#consoleOutput {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 15px;
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+</style>
+</head>
+<body>
+
+<h1>Интерактивный портал лабораторных работ</h1>
+<p>Задания 211-230: вывод результатов ниже и в консоли (F12). Задания 231-235 полностью интерактивны.</p>
+<pre id="consoleOutput"></pre>
+
+<section>
+  <h2>231. Интерактивный тест</h2>
+  <div id="quizContainer"></div>
+</section>
+
+<section>
+  <h2>232. Заявки на оборудование</h2>
+  <input id="eqTitle" placeholder="Наименование оборудования">
+  <input id="eqDate" type="date">
+  <input id="eqPurpose" placeholder="Назначение / Цель">
+  <button onclick="registerRequest()">Подать заявку</button>
+  <br><br>
+  <input id="eqSearchInput" placeholder="Поиск по названию..." oninput="renderRequests()">
+  <br><br>
+  <table id="requestsTable"></table>
+</section>
+
+<section>
+  <h2>233. Статистика успеваемости студентов</h2>
+  <input id="studentSearch" placeholder="Поиск по имени..." oninput="renderStudents()">
+  <button onclick="toggleSorting(); renderStudents()">Сортировать по баллам</button>
+  <p id="studentSummary"></p>
+  <table id="studentTable"></table>
+  <h3>Диаграмма успеваемости</h3>
+  <div id="studentChart"></div>
+</section>
+
+<section>
+  <h2>234. AI Чат-помощник</h2>
+  <div id="chatContainer"></div>
+  <input id="chatInput" placeholder="Задайте вопрос (HTML, CSS, JavaScript)..." style="width: 60%;">
+  <button onclick="sendMessage()">Отправить</button>
+  <button onclick="document.getElementById('chatContainer').innerHTML=''">Очистить</button>
+</section>
+
+<section>
+  <h2>235. Управление IT-лабораторией</h2>
+  <select id="deviceFilter" onchange="renderDevices()">
+    <option value="all">Все устройства</option>
+    <option value="ok">Исправные</option>
+    <option value="bad">Требуют ремонта</option>
+  </select>
+  <input id="deviceSearch" placeholder="Поиск по номеру..." oninput="renderDevices()">
+  <button onclick="exportToCsvFile()">Экспорт в CSV</button>
+  <p id="deviceSummaryText"></p>
+  <input id="repairPcNum" placeholder="Номер ПК">
+  <input id="repairDescription" placeholder="Описание поломки">
+  <button onclick="reportIssue()">Зарегистрировать неисправность</button>
+  <div id="deviceCardsContainer"></div>
+</section>
+
+<script>
+function printLog(text) {
+  console.log(text);
+  document.getElementById('consoleOutput').textContent += text + "\n";
+}
+const calcSum = arr => arr.reduce((acc, val) => acc + val, 0);
+
+// ---------- 211 ----------
+function checkTokens(t) {
+  if (t < 0) return "Ошибка: отрицательное значение";
+  if (t > 1000) return "Достаточно токенов";
+  if (t > 100) return "Токены заканчиваются";
+  if (t > 0) return "Критически мало токенов";
+  return "Лимит исчерпан";
+}
+[1500, 500, 50, 0, -5].forEach(t => printLog("211: tokens=" + t + " -> " + checkTokens(t)));
+
+// ---------- 212 ----------
+function checkReady(codeOk, testOk) {
+  if (codeOk && testOk) return "Готово к развертыванию";
+  if (!codeOk) return "Требуется дописать код";
+  return "Необходимо тестирование системы";
+}
+[[true,true],[true,false],[false,true],[false,false]].forEach(p => printLog("212: " + p + " -> " + checkReady(p[0], p[1])));
+
+// ---------- 213 ----------
+function getTariffPrice(ramSize) {
+  if (ramSize <= 0) return -1;
+  if (ramSize <= 4) return 3000;
+  if (ramSize <= 8) return 5000;
+  if (ramSize <= 16) return 9000;
+  return 15000;
+}
+let memorySize = 16, cost = getTariffPrice(memorySize);
+if (cost === -1) printLog("213: Ошибка: неверный объем");
+else printLog("213: RAM " + memorySize + " ГБ, тариф " + cost + " ₸, за полгода " + cost * 6 + " ₸");
+
+// ---------- 214 ----------
+function assessQuality(errs) {
+  if (errs === 0) return "Превосходный код";
+  if (errs <= 2) return "Мелкие недочеты";
+  if (errs <= 5) return "Требуется корректировка";
+  return "Нужна полная переработка";
+}
+[3, 0, 2, 4, 8].forEach(e => printLog("214: errors=" + e + " -> " + assessQuality(e)));
+
+// ---------- 215 ----------
+let currentStatusId = 3;
+switch (currentStatusId) {
+  case 1: printLog("215: Создана"); break;
+  case 2: printLog("215: На проверке"); break;
+  case 3: printLog("215: Утверждена"); break;
+  case 4: printLog("215: Отклонена"); break;
+  case 5: printLog("215: Завершена"); break;
+  default: printLog("215: Неизвестный статус");
+}
+
+// ---------- 216 ----------
+let testScores = [95, 82, 47, 75, 100, 68, 55, 91, 39, 84];
+let highCnt = 0, lowCnt = 0;
+for (let s of testScores) { if (s >= 90) highCnt++; if (s < 50) lowCnt++; }
+printLog("216: студентов " + testScores.length + ", средний балл " + (calcSum(testScores)/testScores.length).toFixed(1) + ", >=90: " + highCnt + ", <50: " + lowCnt);
+
+// ---------- 217 ----------
+let labRooms = [];
+for (let i = 201; i <= 215; i++) labRooms.push(i);
+printLog("217: все кабинеты: " + labRooms.join(", "));
+printLog("217: четные: " + labRooms.filter(r => r % 2 === 0).join(", "));
+
+// ---------- 218 ----------
+let courseTitle = "Artificial Intelligence";
+let spaceCount = courseTitle.split(" ").length - 1;
+printLog("218: длина " + courseTitle.length + ", пробелов " + spaceCount);
+
+// ---------- 219 ----------
+let hardwarePrices = [85000, 250000, 120000, 460000, 95000, 310000];
+let sortedPrices = hardwarePrices.slice().sort((a,b) => b - a);
+let topThree = sortedPrices.slice(0, 3);
+printLog("219: топ-3 суммы: " + calcSum(topThree));
+
+// ---------- 220 ----------
+let workDays = [4, 7, 5, 9, 3, 8, 6];
+printLog("220: всего задач " + calcSum(workDays) + ", макс " + Math.max(...workDays));
+
+// ---------- 221 ----------
+let codebaseFiles = ["index.html", "style.css", "app.js", "script.js", "photo.png", "main.js"];
+let jsFilesOnly = codebaseFiles.filter(f => f.endsWith(".js"));
+printLog("221: JS файлы: " + jsFilesOnly.join(", "));
+
+// ---------- 222 ----------
+let latencies = [120, 85, 230, 95, 150, 70, 180];
+let slowRequests = latencies.filter(t => t > 150);
+printLog("222: медленных запросов (>150мс): " + slowRequests.length);
+
+// ---------- 223 ----------
+let randomGrades = [];
+for (let i = 0; i < 15; i++) randomGrades.push(Math.floor(Math.random() * 101));
+printLog("223: сгенерировано оценок: " + randomGrades.length);
+
+// ---------- 224 ----------
+function calcApiCost(tokenCount, unitRate) {
+  if (typeof tokenCount !== "number" || tokenCount < 0) return "Ошибка";
+  return (tokenCount / 1000) * unitRate;
+}
+printLog("224: стоимость API: " + calcApiCost(12500, 8) + " ₸");
+
+// ---------- 225 ----------
+let buildingRooms = [
+  {number: 201, total: 24, occupied: 18},
+  {number: 202, total: 20, occupied: 20},
+  {number: 203, total: 25, occupied: 12},
+  {number: 204, total: 24, occupied: 22}
+];
+function auditRooms(list) {
+  let totalFree = 0;
+  list.forEach(r => { totalFree += (r.total - r.occupied); });
+  printLog("225: всего свободных мест в корпусе: " + totalFree);
+}
+auditRooms(buildingRooms);
+
+// ---------- 226 ----------
+let activeUsers = [{name:"Алия", requests:25}, {name:"Арман", requests:12}, {name:"Мадина", requests:48}];
+let totalReqs = calcSum(activeUsers.map(u => u.requests));
+printLog("226: общие запросы пользователей: " + totalReqs);
+
+// ---------- 227 ----------
+let budgetItems = [{name:"Разработка", cost:200000}, {name:"Дизайн", cost:80000}, {name:"Сервер", cost:50000}];
+let budgetTotal = calcSum(budgetItems.map(i => i.cost));
+printLog("227: итоговый бюджет: " + budgetTotal);
+
+// ---------- 228 ----------
+let roboticUnits = [{name:"Robot A", battery:95, online:true}, {name:"Robot B", battery:15, online:true}];
+printLog("228: роботов онлайн: " + roboticUnits.filter(r => r.online).length);
+
+// ---------- 229 ----------
+let onlineCourses = [{title:"JavaScript", enrolled:30, completed:24}, {title:"Python", enrolled:25, completed:20}];
+printLog("229: курсов загружено: " + onlineCourses.length);
+
+// ---------- 230 ----------
+let projectTeam = [{name:"Алия", tasks:5}, {name:"Руслан", tasks:8}];
+printLog("230: участников команды: " + projectTeam.length);
+
+
+// ==================== 231-235 ИНТЕРАКТИВНЫЕ МОДУЛИ ====================
+
+// 231. Тест
+let questionSet = [
+  ["Каким ключевым словом объявляют переменную?", ["let", "fix", "dim", "int"], 0],
+  ["Какой метод добавляет элемент в конец массива?", ["pop", "push", "shift", "add"], 1],
+  ["Что вернет оператор typeof 5?", ["number", "string", "int", "float"], 0],
+  ["Какой оператор проверяет строгое равенство?", ["=", "==", "===", "=>"], 2],
+  ["Как вывести сообщение в консоль браузера?", ["console.log()", "print()", "echo()", "write()"], 0],
+  ["Как узнать длину массива arr?", ["arr.size", "arr.length", "arr.count", "len(arr)"], 1],
+  ["Какой метод создает новый отфильтрованный массив?", ["filter", "push", "join", "split"], 0],
+  ["Чему равен остаток от деления 10 % 3?", ["1", "3", "0", "10"], 0],
+  ["Где хранит данные хранилище localStorage?", ["В браузере", "В Excel", "В Word", "В облаке"], 0],
+  ["Какая функция преобразует строку в целое число?", ["parseInt", "toString", "charAt", "slice"], 0]
+];
+let currentQIndex = 0, correctAnswersCount = 0;
+
+function renderQuestion() {
+  let q = questionSet[currentQIndex];
+  let html = `<p><strong>Вопрос ${currentQIndex + 1} из ${questionSet.length}:</strong> ${q[0]}</p>`;
+  q[1].forEach((opt, idx) => {
+    html += `<label><input type='radio' name='quizOpt' value='${idx}'> ${opt}</label><br>`;
+  });
+  html += `<br><button onclick='handleNextQuestion()'>Следующий вопрос</button>`;
+  document.getElementById('quizContainer').innerHTML = html;
+}
+
+function handleNextQuestion() {
+  let selected = document.querySelector("input[name='quizOpt']:checked");
+  if (!selected) { alert("Пожалуйста, выберите вариант ответа"); return; }
+  if (parseInt(selected.value) === questionSet[currentQIndex][2]) correctAnswersCount++;
+  currentQIndex++;
+  if (currentQIndex < questionSet.length) {
+    renderQuestion();
+  } else {
+    let percent = (correctAnswersCount / questionSet.length) * 100;
+    let mark = percent >= 85 ? 5 : percent >= 65 ? 4 : percent >= 50 ? 3 : 2;
+    document.getElementById('quizContainer').innerHTML = 
+      `<p>Тест завершен! Правильных ответов: ${correctAnswersCount} из ${questionSet.length} (${percent}%). Ваша оценка: <strong>${mark}</strong></p>` +
+      `<button onclick='currentQIndex=0; correctAnswersCount=0; renderQuestion()'>Пройти заново</button>`;
+  }
+}
+renderQuestion();
+
+
+// 232. Заявки
+let appRequests = JSON.parse(localStorage.getItem("appRequestsStorage") || "[]");
+let statusList = ["Новая", "В обработке", "Одобрена", "Отклонена", "Выполнена"];
+
+function registerRequest() {
+  let nameVal = document.getElementById('eqTitle').value.trim();
+  let dateVal = document.getElementById('eqDate').value;
+  let goalVal = document.getElementById('eqPurpose').value.trim();
+  if (!nameVal || !dateVal || !goalVal) { alert("Заполните все поля заявки"); return; }
+  appRequests.push({name: nameVal, date: dateVal, goal: goalVal, status: "Новая"});
+  document.getElementById('eqTitle').value = "";
+  document.getElementById('eqDate').value = "";
+  document.getElementById('eqPurpose').value = "";
+  persistRequests();
+}
+
+function persistRequests() {
+  localStorage.setItem("appRequestsStorage", JSON.stringify(appRequests));
+  renderRequests();
+}
+
+function updateReqStatus(idx, newStatus) {
+  appRequests[idx].status = newStatus;
+  persistRequests();
+}
+
+function renderRequests() {
+  let filterText = document.getElementById('eqSearchInput').value.toLowerCase();
+  let html = "<tr><th>Оборудование</th><th>Дата</th><th>Цель</th><th>Статус</th></tr>";
+  appRequests.forEach((req, idx) => {
+    if (!req.name.toLowerCase().includes(filterText)) return;
+    html += `<tr><td>${req.name}</td><td>${req.date}</td><td>${req.goal}</td><td>` +
+      `<select onchange='updateReqStatus(${idx}, this.value)'>` +
+      statusList.map(st => `<option ${st === req.status ? "selected" : ""}>${st}</option>`).join("") +
+      `</select></td></tr>`;
+  });
+  document.getElementById('requestsTable').innerHTML = html;
+}
+renderRequests();
+
+
+// 233. Студенты
+let studentDataList = [
+  {name: "Алия", score: 92, att: 95},
+  {name: "Арман", score: 45, att: 70},
+  {name: "Мадина", score: 78, att: 88},
+  {name: "Данияр", score: 60, att: 80},
+  {name: "Руслан", score: 38, att: 65},
+  {name: "Айгерим", score: 85, att: 92}
+];
+let isSortedDesc = false;
+
+function toggleSorting() { isSortedDesc = !isSortedDesc; }
+
+function renderStudents() {
+  let searchQ = document.getElementById('studentSearch').value.toLowerCase();
+  let list = studentDataList.filter(s => s.name.toLowerCase().includes(searchQ));
+  if (isSortedDesc) list.sort((a,b) => b.score - a.score);
+  
+  let html = "<tr><th>Имя</th><th>Балл</th><th>Посещаемость, %</th></tr>";
+  list.forEach(st => {
+    html += `<tr><td>${st.name}</td><td>${st.score}</td><td>${st.att}</td></tr>`;
+  });
+  document.getElementById('studentTable').innerHTML = html;
+  
+  document.getElementById('studentChart').innerHTML = list.map(st => 
+    `<div style="margin:4px 0;">${st.name}: <span style="display:inline-block; background:var(--primary); height:10px; width:${st.score * 2}px; border-radius:3px;"></span> ${st.score}</div>`
+  ).join("");
+  
+  let avgScore = calcSum(studentDataList.map(s => s.score)) / studentDataList.length;
+  let avgAtt = calcSum(studentDataList.map(s => s.att)) / studentDataList.length;
+  document.getElementById('studentSummary').textContent = 
+    `Средний балл: ${avgScore.toFixed(1)} | Средняя посещаемость: ${avgAtt.toFixed(1)}% | Отстающие (<50): ${studentDataList.filter(s => s.score < 50).map(s => s.name).join(", ") || "нет"}`;
+}
+renderStudents();
+
+
+// 234. Чат
+let knowledgeBase = {
+  html: "HTML — стандартный язык разметки документов для создания веб-страниц.",
+  css: "CSS используется для описания внешнего вида и оформления документов.",
+  javascript: "JavaScript — язык программирования, добавляющий интерактивность веб-страницам."
+};
+
+function appendChatMessage(sender, messageText) {
+  let timeStr = new Date().toLocaleTimeString();
+  let container = document.getElementById('chatContainer');
+  container.innerHTML += `<p><strong>[${timeStr}] ${sender}:</strong> ${messageText}</p>`;
+  container.scrollTop = container.scrollHeight;
+}
+
+function sendMessage() {
+  let inputField = document.getElementById('chatInput');
+  let userQuery = inputField.value.trim();
+  if (!userQuery) return;
+  appendChatMessage("Вы", userQuery);
+  
+  let responseText = "Извините, пока нет точного ответа на этот вопрос.";
+  let queryLower = userQuery.toLowerCase();
+  for (let keyword in knowledgeBase) {
+    if (queryLower.includes(keyword)) {
+      responseText = knowledgeBase[keyword];
+    }
+  }
+  setTimeout(() => { appendChatMessage("Бот", responseText); }, 300);
+  inputField.value = "";
+}
+
+
+// 235. Лаборатория (ПК)
+let labPcRegistry = JSON.parse(localStorage.getItem("labPcRegistryStorage") || "null") || [
+  {num: 1, room: 201, ok: true},
+  {num: 2, room: 201, ok: false, fault: "Нет сети"},
+  {num: 3, room: 202, ok: true},
+  {num: 4, room: 202, ok: true},
+  {num: 5, room: 203, ok: false, fault: "Не включается"},
+  {num: 6, room: 203, ok: true}
+];
+
+function persistPcData() {
+  localStorage.setItem("labPcRegistryStorage", JSON.stringify(labPcRegistry));
+  renderDevices();
+}
+
+function toggleDeviceState(idx) {
+  labPcRegistry[idx].ok = !labPcRegistry[idx].ok;
+  if (labPcRegistry[idx].ok) delete labPcRegistry[idx].fault;
+  persistPcData();
+}
+
+function reportIssue() {
+  let targetNum = document.getElementById('repairPcNum').value;
+  let desc = document.getElementById('repairDescription').value.trim();
+  let targetPc = labPcRegistry.find(p => p.num == targetNum);
+  if (!targetPc || !desc) { alert("Проверьте введенный номер ПК и описание неисправности"); return; }
+  targetPc.ok = false;
+  targetPc.fault = desc;
+  document.getElementById('repairPcNum').value = "";
+  document.getElementById('repairDescription').value = "";
+  persistPcData();
+}
+
+function renderDevices() {
+  let filterMode = document.getElementById('deviceFilter').value;
+  let searchNum = document.getElementById('deviceSearch').value;
+  let containerHtml = "";
+  
+  labPcRegistry.forEach((pc, idx) => {
+    if (filterMode === "ok" && !pc.ok) return;
+    if (filterMode === "bad" && pc.ok) return;
+    if (searchNum && pc.num != searchNum) return;
+    
+    containerHtml += `<div class='device-card'>` +
+      `<strong>ПК №${pc.num}</strong><br>` +
+      `Кабинет: ${pc.room}<br>` +
+      `Статус: <span style="color: ${pc.ok ? 'green' : 'red'}">${pc.ok ? 'Исправен' : 'Неисправен'}</span>` +
+      (pc.fault ? `<br><small>Сбой: ${pc.fault}</small>` : "") +
+      `<br><br><button onclick='toggleDeviceState(${idx})'>Изменить статус</button>` +
+      `</div>`;
+  });
+  
+  document.getElementById('deviceCardsContainer').innerHTML = containerHtml;
+  let operationalCount = labPcRegistry.filter(p => p.ok).length;
+  document.getElementById('deviceSummaryText').textContent = 
+    `Исправных компьютеров: ${operationalCount} из ${labPcRegistry.length} (${Math.round((operationalCount/labPcRegistry.length)*100)}%)`;
+}
+
+function exportToCsvFile() {
+  let csvContent = "num;room;state;fault\n" + labPcRegistry.map(p => `${p.num};${p.room};${p.ok ? 'ok' : 'bad'};${p.fault || ''}`).join("\n");
+  let blobObject = new Blob([csvContent], {type: "text/csv;charset=utf-8;"});
+  let link = document.createElement("a");
+  link.href = URL.createObjectURL(blobObject);
+  link.download = "laboratory_report.csv";
+  link.click();
+}
+renderDevices();
+</script>
+
+</body>
+</html>
